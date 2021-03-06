@@ -1,53 +1,14 @@
-#Libraries
-import RPi.GPIO as GPIO
-import time
+from machine import UART
 
-#GPIO Mode (BOARD / BCM)
-GPIO.setmode(GPIO.BCM)
+uart = UART(1)
+uart.init(baudrate=9600, bits=8, parity=None, stop=1, timeout_chars=190)
 
-#set GPIO Pins
-GPIO_TRIGGER = 18
-GPIO_ECHO = 24
-
-#set GPIO direction (IN / OUT)
-GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
-GPIO.setup(GPIO_ECHO, GPIO.IN)
-
-def distance():
-    # set Trigger to HIGH
-    GPIO.output(GPIO_TRIGGER, True)
-
-    # set Trigger after 0.01ms to LOW
-    time.sleep(0.00001)
-    GPIO.output(GPIO_TRIGGER, False)
-
-    StartTime = time.time()
-    StopTime = time.time()
-
-    # save StartTime
-    while GPIO.input(GPIO_ECHO) == 0:
-        StartTime = time.time()
-
-    # save time of arrival
-    while GPIO.input(GPIO_ECHO) == 1:
-        StopTime = time.time()
-
-    # time difference between start and arrival
-    TimeElapsed = StopTime - StartTime
-    # multiply with the sonic speed (34300 cm/s)
-    # and divide by 2, because there and back
-    distance = (TimeElapsed * 34300) / 2
-
-    return distance
-
-if __name__ == '__main__':
-    try:
-        while True:
-            dist = distance()
-            print ("Measured Distance = %.1f cm" % dist)
-            time.sleep(1)
-
-        # Reset by pressing CTRL + C
-    except KeyboardInterrupt:
-        print("Measurement stopped by User")
-        GPIO.cleanup()
+while True: #Oneindige loop
+    header_bytes = uart.read(1)
+    data_header = int(uart.read(1)[0])
+    data_high = int(uart.read(2)[0])
+    data_low = int(uart.read(3)[0])
+    distance = data_high*256 + data_low
+    #Is de data/Getal kleiner dan 1000 dan print hij die anders print hij niets
+    if int(distance/10) < 1000:
+        print("afstand",int(distance/10), "cm") #print "afstand" + getal + "cm"
